@@ -2,10 +2,25 @@ import time
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from requests.exceptions import ReadTimeout, HTTPError
+import json
+import os
 from keys import client_id, client_secret
+
+FOLLOWED_ARTISTS_FILE = 'followed_artists.json'
 
 def debug_print(message):
     print(f"[DEBUG] {message}")
+
+def load_followed_artists():
+    if os.path.exists(FOLLOWED_ARTISTS_FILE):
+        with open(FOLLOWED_ARTISTS_FILE, 'r') as file:
+            followed_artists = set(json.load(file))           
+            return followed_artists
+    return set()
+
+def save_followed_artists(followed_artists):
+    with open(FOLLOWED_ARTISTS_FILE, 'w') as file:
+        json.dump(list(followed_artists), file)
 
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
                                                client_secret=client_secret,
@@ -13,13 +28,14 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
                                                scope=['playlist-read-private', 'user-follow-modify', 'user-follow-read']))
 
 playlist_id = '1C9TEGqEscmDADF5VK4uhI'
+followed_artists = load_followed_artists()
 
 debug_print("Fetching initial playlist tracks")
 playlist = sp.playlist_tracks(playlist_id, limit=100)
 
 artists_tracks = {}
 repeated_artists = []
-all_artists = set()  
+all_artists = set()
 
 def fetch_playlist_tracks(playlist):
     while True:
@@ -63,7 +79,7 @@ def get_artist_ids(artists, max_retries=3, delay=5):
             print(f"Failed to retrieve artist {artist} after {max_retries} retries.")
     return artist_ids, artist_names_with_ids
 
-def get_followed_artists():
+def get_followed_artists_from_spotify():
     followed_artists = set()
     results = sp.current_user_followed_artists(limit=50)
     while results:
@@ -81,6 +97,8 @@ def follow_artists_individually(artist_ids, artist_names_with_ids, followed_arti
             try:
                 sp.user_follow_artists([artist_id])
                 print(f'Followed artist: {artist_names_with_ids[artist_id]}')
+                followed_artists.add(artist_id)  
+                save_followed_artists(followed_artists)  
             except HTTPError as e:
                 print(f"HTTP error occurred for artist {artist_names_with_ids[artist_id]}: {e}")
         else:
@@ -102,10 +120,13 @@ else:
 debug_print("Getting artist IDs")
 artist_ids, artist_names_with_ids = get_artist_ids(all_artists)
 
-debug_print("Getting followed artists")
-followed_artists = get_followed_artists()
+debug_print("Getting followed artists from Spotify")
+spotify_followed_artists = get_followed_artists_from_spotify()
+all_followed_artists = followed_artists.union(spotify_followed_artists)
 
 debug_print("Following artists individually")
-follow_artists_individually(artist_ids, artist_names_with_ids, followed_artists)
+follow_artists_individually(artist_ids, artist_names_with_ids, all_followed_artists)
+
+save_followed_artists(all_followed_artists)
 
 print("Followed all artists in the playlist.")
