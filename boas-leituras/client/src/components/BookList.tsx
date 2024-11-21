@@ -3,6 +3,16 @@ import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import { bookApi } from "../utils/api";
 import { Book } from "../types/Book";
 
+const formatDate = (dateString: string) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  });
+};
+
 export const BookList: React.FC = () => {
   const [books, setBooks] = useState<Book[]>([]);
 
@@ -39,7 +49,8 @@ export const BookList: React.FC = () => {
               <p>Pages: {book.pages}</p>
               <p>Rating: {"⭐".repeat(book.rating)}</p>
               <p>
-                Read: {book.start_date} - {book.finish_date}
+                Read: {formatDate(book.start_date)} -{" "}
+                {formatDate(book.finish_date)}
               </p>
               <p>Notes: {book.notes}</p>
             </div>

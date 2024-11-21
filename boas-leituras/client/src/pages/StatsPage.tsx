@@ -12,7 +12,7 @@ export const StatsPage: React.FC = () => {
     <div className="container mx-auto p-4">
       <Card>
         <CardHeader>
-          <CardTitle>Reading Statistics</CardTitle>
+          <CardTitle>Boas Leituras</CardTitle>
         </CardHeader>
         <CardContent>
           <StatsCharts />
